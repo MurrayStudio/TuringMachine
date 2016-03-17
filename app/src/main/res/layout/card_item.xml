@@ -42,10 +42,11 @@
                     android:id="@+id/turing_text"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
+                    android:gravity="left"
                     android:text="aabbcc"
+                    android:fontFamily="monospace"
                     android:textColor="@color/background_material_dark"
-                    android:textSize="37sp" />
+                    android:textSize="18sp" />
 
             </LinearLayout>
     </android.support.v7.widget.CardView>
