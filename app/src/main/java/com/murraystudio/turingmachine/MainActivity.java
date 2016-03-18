@@ -29,22 +29,17 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
     private EditText inputEditText;
     private String inputString;
 
-    private View.OnClickListener messageListener;
-
 
     //turing machine related vars
 
-    // Var to hold execution until user prompts for next state
-    boolean nextStep = false;
-
-    boolean hasStart = false;
-
-    private String randomText;
+    private boolean hasStart = false;
 
     // Static variable to hold the original input without having to pass it through a bunch
     public static String initialIn = "";
 
-    String pointer; //points to where we are on turing machine
+    private int clickIndex;
+
+    String pointerVar; //points to where we are on turing machine
 
     int index;
 
@@ -54,8 +49,6 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        randomText = "memes";
 
         inputString = "";
 
@@ -87,37 +80,30 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
                 inputString = inputEditText.getText().toString();
                 String newName = inputString;
 
-                if(!hasStart) {
-                    turingMachine();
-                    hasStart = true;
-                }
+                if(!newName.equals("")) {
 
-                if(!newName.equals("")){
-                    if(mainAdapter.getItemCount()>1){
-                        //mainAdapter.add(0, newName);
-                        //layoutManager.scrollToPosition(0);
-                    }else{
-                        //mainAdapter.add(0, newName);
+
+                    if (hasStart) {
+                        if (clickIndex < mainAdapter.getItemNameCount() - 1) {
+                            ++clickIndex;
+                            mainAdapter.makeVisible(clickIndex);
+                            layoutManager.scrollToPosition(clickIndex);
+                        } else {
+                            finish();
+                            startActivity(getIntent());
+                        }
+
                     }
-                }
-            }
-        };
 
-        messageListener = new View.OnClickListener() {
-            public void onClick(View v) {
-                inputString = inputEditText.getText().toString();
-                String newName = inputString;
+                    if (!hasStart) {
+                        turingMachine();
+                        printMessage("End Execution");
+                        clickIndex = 0;
 
-                if(hasStart) {
-                    printMessage(inputString + "\n" + pointer + randomText);
-                }
-
-                if(!newName.equals("")){
-                    if(mainAdapter.getItemCount()>1){
-                        //mainAdapter.add(0, newName);
-                        //layoutManager.scrollToPosition(0);
-                    }else{
-                        //mainAdapter.add(0, newName);
+                        //Log.i("CLICKINDEX", Integer.toString(clickIndex));
+                        mainAdapter.makeVisible(clickIndex);
+                        layoutManager.scrollToPosition(clickIndex);
+                        hasStart = true;
                     }
                 }
             }
@@ -159,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
     private void turingMachine(){
         inputString = inputEditText.getText().toString();
         initialIn = inputString;
-        pointer = "^";
+        pointerVar = "^";
         index = 0;
 
         // Give the user the benefit of the doubt
@@ -176,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
                 printMessage("CHEATER!");
                 cheater = true;
             }
-            pointer += ' ';
+            pointerVar += ' ';
         }
 
         // Trim leading underscores
@@ -196,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         //if no input entered
         if (inputString.length() == 0)
         {
-            printMessage("Initial state:" + "\n" + inputString + "\n" + pointer + "\n" + "BLANK ENTRY!");
+            printMessage("Initial state:" + "\n" + inputString + "\n" + pointerVar + "\n" + "BLANK ENTRY!");
 
             //qAccept();
         }
@@ -206,10 +192,11 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         inputString = inputString.trim();
 
         //intro
-        printMessage("Initial state:" + "\n" + inputString + "\n" + pointer);
+        printMessage("Begin Execution");
+        printMessage(inputString + "\n" + pointerVar);
 
         // Begin simulation
-        q0(inputString, pointer, index);
+        q0(inputString, pointerVar, index);
 
     }
 
@@ -556,17 +543,10 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
 
     private void printMessage(String text){
 
-
-
-        randomText = "beams";
-
-        //it is now true so print
         if(!text.equals("")){
             mainAdapter.add(0, text);
             layoutManager.scrollToPosition(0);
         }
-
-        nextStep = false;
     }
 
     public String[] left(String input, String pointer, int index)
