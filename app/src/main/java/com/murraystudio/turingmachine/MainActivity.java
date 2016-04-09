@@ -1,3 +1,9 @@
+/**
+ * Author: Shamus Murray
+ *
+ * Class holds main Turing Machine logic and UI Components for Android app.
+ */
+
 package com.murraystudio.turingmachine;
 
 import android.content.res.ObbInfo;
@@ -8,6 +14,7 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -17,33 +24,30 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements MainAdapter.OnItemClickListener {
+public class MainActivity extends AppCompatActivity {
 
     //Android related vars
     protected MainAdapter mainAdapter;
     protected RecyclerView recyclerView;
     protected RecyclerView.LayoutManager layoutManager;
-    protected String[] mDataset;
 
     private Button btnStep;
     private EditText inputEditText;
     private String inputString;
 
 
-    //turing machine related vars
-
+    //Turing machine related vars
     private boolean hasStart = false;
 
-    // Static variable to hold the original input without having to pass it through a bunch
-    public static String initialIn = "";
+    // keep copy of orignal input
+    public static String initialInput = "";
 
     private int clickIndex;
 
     String pointerVar; //points to where we are on turing machine
 
-    int index;
+    int pointerPosition; //holds numerical length of where head is
 
-    //String message; //text for each card
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        mainAdapter.setOnItemClickListener(this);
         recyclerView.setAdapter(mainAdapter);
 
         inputEditText = (EditText) findViewById(R.id.input_edit_text);
@@ -78,13 +81,12 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         View.OnClickListener startListener = new View.OnClickListener() {
             public void onClick(View v) {
                 inputString = inputEditText.getText().toString();
-                String newName = inputString;
 
-                if(!newName.equals("")) {
-
-
+                //check for blank entry
+                if(!inputString.equals("")) {
                     if (hasStart) {
                         if (clickIndex < mainAdapter.getItemNameCount() - 1) {
+                            //make cards for each step (clickIndex = total cards to make)
                             ++clickIndex;
                             mainAdapter.makeVisible(clickIndex);
                             layoutManager.scrollToPosition(clickIndex);
@@ -96,11 +98,12 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
                     }
 
                     if (!hasStart) {
-                        turingMachine();
-                        printMessage("End Execution");
+                        inputEditText.setInputType(InputType.TYPE_NULL);
+                        turingMachine(inputString); //execute all logic for the turing machine
+                        printMessage("End Execution" + "\n" + "Step again to restart"); //we are done, prints message stating so
                         clickIndex = 0;
 
-                        //Log.i("CLICKINDEX", Integer.toString(clickIndex));
+                        //each time step button is pressed, make visible the cards for each step.
                         mainAdapter.makeVisible(clickIndex);
                         layoutManager.scrollToPosition(clickIndex);
                         hasStart = true;
@@ -109,86 +112,47 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
             }
         };
 
+        //set on click listener for button so we can step through states
         btnStep = (Button)findViewById(R.id.stepBtn);
         btnStep.setOnClickListener(startListener);
-
-
-/*        btnStep = (Button)findViewById(R.id.stepBtn);
-        btnStep.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v) {
-                inputString = inputEditText.getText().toString();
-                String newName = inputString;
-
-                if(hasStart){
-                    nextStep = true;
-                }
-
-                if(!hasStart) {
-                    turingMachine();
-                    hasStart = true;
-                }
-
-                if(!newName.equals("")){
-                    if(mainAdapter.getItemCount()>1){
-                        //mainAdapter.add(0, newName);
-                        //layoutManager.scrollToPosition(0);
-                    }else{
-                        //mainAdapter.add(0, newName);
-                    }
-                }
-            }
-        });*/
-
     }
 
-    private void turingMachine(){
-        inputString = inputEditText.getText().toString();
-        initialIn = inputString;
+    /**
+     * turingMachine
+     *
+     * Starts our TM execution
+     *
+     * @param inputStr String passed to TM
+     */
+    private void turingMachine(String inputStr){
+        inputStr = inputEditText.getText().toString();
+        initialInput = inputStr;
         pointerVar = "^";
-        index = 0;
-
-        // Give the user the benefit of the doubt
-        boolean cheater = false;
+        pointerPosition = 0;
 
         // Iterate through the input string and add spaces to the pointer to match length
         for (int i = 0; i < inputString.length(); i++)
         {
-            // If the input string has # characters (marked by TM), call out the user for cheating.
-            if (inputString.charAt(i) == '#' && !cheater)
-            {
-                //System.out.println("I see you trying to be clever. Throwing in your own pre-marked symbols. No cheating.");
-                //System.out.println("Let's see what happens when we run your string anyway. Cheater.");
-                printMessage("CHEATER!");
-                cheater = true;
-            }
             pointerVar += ' ';
         }
 
-        // Trim leading underscores
-        int counter = 0;
+        int counterUnderscores = 0;
         for (int i = 0; i < inputString.length(); i++)
         {
             if (inputString.charAt(i) == '_')
             {
-                counter++;
+                counterUnderscores++;
             }
+            //no more underscores to count
             else
             {
                 break;
             }
         }
 
-        //if no input entered
-        if (inputString.length() == 0)
-        {
-            printMessage("Initial state:" + "\n" + inputString + "\n" + pointerVar + "\n" + "BLANK ENTRY!");
-
-            //qAccept();
-        }
-
-        //trim any superfluous characters
-        inputString = inputString.substring(counter);
+        //trim any underscores
+        inputString = inputString.substring(counterUnderscores);
+        //trim any spaces
         inputString = inputString.trim();
 
         //intro
@@ -196,72 +160,70 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         printMessage(inputString + "\n" + pointerVar);
 
         // Begin simulation
-        q0(inputString, pointerVar, index);
+        q0(inputString, pointerVar, pointerPosition);
 
     }
 
     /**
-     * q0 - Initial state of TM execution.
+     * q0
+     *
+     * Our start state.
+     * State which can transition to qAccept.
      *
      * Transitions: (# -> #, Right):    q0
      *              (a -> #, Right):    q1
      *              (_ -> _, Right):    qAccept
      *              (other):            qReject
      *
-     * IMPORTANT: Only state which can transition to qAccept.
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q0(String input, String pointer, int index)
+    public void q0(String input, String pointer, int pointerPosition)
     {
-        // Self loop conditions
-        if(input.charAt(index) == '#')
+        // Check for loop back conditions
+        if(input.charAt(pointerPosition) == '#')
         {
-            // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
-            input = output[0];
-            pointer = output[1];
-            index = output[2].length();
+            // Move pointer right and retrieve those outputs
+            String[] output = moveRight(input, pointer, pointerPosition);
+            input = output[0]; //position 0 in array holds input
+            pointer = output[1]; //position 1 in array holds pointer
+            pointerPosition = output[2].length(); //position 0 in array holds index
 
-            // Print state of Turing machine with helper
-            //printState(input, pointer);
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
             // Loop back to state q0
-            q0(input, pointer, index);
+            q0(input, pointer, pointerPosition);
         }
         // Next state condition
-        else if (input.charAt(index) == 'a')
+        else if (input.charAt(pointerPosition) == 'a')
         {
-            System.out.println("Marked character " + input.charAt(index) + " with #.");
-
             // Mark character with #
-            input = input.substring(0, index) + '#' + input.substring(index + 1);
+            input = input.substring(0, pointerPosition) + '#' + input.substring(pointerPosition + 1);
 
-            //printState(input, pointer);
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q1(input, pointer, index);
+            q1(input, pointer, pointerPosition);
         }
-        else if (input.charAt(index) == '_')
+        else if (input.charAt(pointerPosition) == '_')
         {
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
 
-            // Print state of turing machine with helper
-            //printState(input, pointer);
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
             // Move to qAccept
@@ -269,12 +231,14 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * q1 - Second state of TM execution.
+     * q1
+     *
+     * Second state of TM execution.
      *
      * Transitions: ([a, #] -> [a, #], Right):  q1
      *              (b -> #, Right):            q2
@@ -282,53 +246,55 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q1(String input, String pointer, int index)
+    public void q1(String input, String pointer, int pointerPosition)
     {
 
-        // Self loop conditions
-        if (input.charAt(index) == 'a' || input.charAt(index) == '#')
+        // Check for loop back conditions
+        if (input.charAt(pointerPosition) == 'a' || input.charAt(pointerPosition) == '#')
         {
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q1(input, pointer, index);
+            q1(input, pointer, pointerPosition);
         }
         // Next state condition
-        else if (input.charAt(index) == 'b')
+        else if (input.charAt(pointerPosition) == 'b')
         {
-            System.out.println("Marked character " + input.charAt(index) + " with #.");
-
             // Mark character with #
-            input = input.substring(0, index) + '#' + input.substring(index + 1);
+            input = input.substring(0, pointerPosition) + '#' + input.substring(pointerPosition + 1);
 
-            //printState(input, pointer);
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q2(input, pointer, index);
+            q2(input, pointer, pointerPosition);
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * q2 - Third state of TM execution.
+     * q2
+     *
+     * Third state of TM execution.
      *
      * Transitions: ([b, #] -> [b, #], Right):  q2
      *              (c -> #, Right):            q3
@@ -336,83 +302,88 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q2(String input, String pointer, int index)
+    public void q2(String input, String pointer, int pointerPosition)
     {
-        // Self loop conditions
-        if (input.charAt(index) == 'b' || input.charAt(index) == '#')
+        // Check for loop back conditions
+        if (input.charAt(pointerPosition) == 'b' || input.charAt(pointerPosition) == '#')
         {
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q2(input, pointer, index);
+            q2(input, pointer, pointerPosition);
         }
         // Next state condition
-        else if (input.charAt(index) == 'c')
+        else if (input.charAt(pointerPosition) == 'c')
         {
-            System.out.println("Marked character " + input.charAt(index) + " with #.");
-
             // Mark character with #
-            input = input.substring(0, index) + '#' + input.substring(index + 1);
+            input = input.substring(0, pointerPosition) + '#' + input.substring(pointerPosition + 1);
 
             //printState(input, pointer);
             printMessage(input + "\n" + pointer);
 
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q3(input, pointer, index);
+            q3(input, pointer, pointerPosition);
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * q3 - Fourth state of TM execution.
+     * q3
+     *
+     * Fourth state of TM execution.
      *
      * Transitions: ([c, _] -> [c, _], Left):   q4
      *              (other):                    qReject
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q3(String input, String pointer, int index)
+    public void q3(String input, String pointer, int pointerPosition)
     {
         // Reset condition
-        if (input.charAt(index) == 'c' || input.charAt(index) == '_')
+        if (input.charAt(pointerPosition) == 'c' || input.charAt(pointerPosition) == '_')
         {
             // Move pointer left + retrieve outputs
-            String[] output = left(input, pointer, index);
+            String[] output = moveLeft(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q4(input, pointer, index);
+            q4(input, pointer, pointerPosition);
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * q4 - Fifth state of TM execution.
+     * q4
+     *
+     * Fifth state of TM execution.
      *
      * Transitions: ([b, #] -> [b, #], Left):   q4
      *              (a -> a, Left):             q5
@@ -421,56 +392,61 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q4(String input, String pointer, int index)
+    public void q4(String input, String pointer, int pointerPosition)
     {
-        // Self loop conditions
-        if (input.charAt(index) == 'b' || input.charAt(index) == '#')
+        // Check for loop back conditions
+        if (input.charAt(pointerPosition) == 'b' || input.charAt(pointerPosition) == '#')
         {
             // Move pointer left + retrieve outputs
-            String[] output = left(input, pointer, index);
+            String[] output = moveLeft(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q4(input, pointer, index);
+            q4(input, pointer, pointerPosition);
         }
         // Return to first state condition
-        else if (input.charAt(index) == 'a')
+        else if (input.charAt(pointerPosition) == 'a')
         {
             // Move pointer left + retrieve outputs
-            String[] output = left(input, pointer, index);
+            String[] output = moveLeft(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q5(input, pointer, index);
+            q5(input, pointer, pointerPosition);
         }
-        else if (input.charAt(index) == '_')
+        else if (input.charAt(pointerPosition) == '_')
         {
             // Move pointer left + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q0(input, pointer, index);
+            q0(input, pointer, pointerPosition);
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * q5 - Sixth state of TM execution.
+     * q5
+     *
+     * Sixth state of TM execution.
      *
      * Transitions: (a -> a, Left):     q5
      *              (# -> #, Right):    q0
@@ -478,84 +454,98 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
      *
      * @param input String currently on the TM tape.
      * @param pointer String showing where the TM execution head is.
-     * @param index Numerical location of the TM execution head.
+     * @param pointerPosition Numerical location of the TM execution head.
      */
-    public void q5(String input, String pointer, int index)
+    public void q5(String input, String pointer, int pointerPosition)
     {
-        // Self loop conditions
-        if (input.charAt(index) == 'a')
+        // Check for loop back conditions
+        if (input.charAt(pointerPosition) == 'a')
         {
             // Move pointer right + retrieve outputs
-            String[] output = left(input, pointer, index);
+            String[] output = moveLeft(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q5(input, pointer, index);
+            q5(input, pointer, pointerPosition);
         }
         // Next state condition
-        else if (input.charAt(index) == '#')
+        else if (input.charAt(pointerPosition) == '#')
         {
             // Move pointer right + retrieve outputs
-            String[] output = right(input, pointer, index);
+            String[] output = moveRight(input, pointer, pointerPosition);
             input = output[0];
             pointer = output[1];
-            index = output[2].length();
-            //printState(input, pointer);
+            pointerPosition = output[2].length();
+
+            // Print current state of TM
             printMessage(input + "\n" + pointer);
 
-            q0(input, pointer, index);
+            q0(input, pointer, pointerPosition);
         }
         else
         {
-            qReject(input, index);
+            qReject(input, pointerPosition);
         }
     }
 
     /**
-     * qAccept - Accept state of TM execution. This state halts execution and
-     *              prints a message to indicate that execution was successful.
+     * qAccept
+     *
+     * Accept state of TM execution.
      */
     public void qAccept()
     {
-        //System.out.println("Result of execution: Accept");
-        //System.out.println("Your original input: " + initialIn);
-
-        printMessage("Result of execution: Accept" + "\n" + "Your original input: " + initialIn);
+        printMessage("Result of execution: Accept" + "\n" + "Your original input: " + initialInput);
     }
 
     /**
-     * qReject - Reject state of TM execution. This state halts execution and
-     *              prints a message indicating what character caused the halt.
+     * qReject
      *
-     * @param input String currently on the TM tape.
+     * Reject state of TM execution.
+     *
+     * @param input String that caused problem.
      * @param index Location of character that caused halt.
      */
     public void qReject(String input, int index)
     {
-        //System.out.println("Result of execution: Reject");
-        //System.out.println("Your original input: " + initialIn);
-        //System.out.println("Halt on character: " + input.charAt(index));
-        printMessage("Result of execution: Reject" + "\n" + "Your original input: " + initialIn + "\n" + "Halt on character: " + input.charAt(index));
+        printMessage("Result of execution: Reject" + "\n" + "Your original input: " + initialInput + "\n" + "Halt on character: " + input.charAt(index));
     }
 
+    /**
+     * printMessage
+     *
+     * Makes a card in adapter that display text (such as a TM state)
+     *
+     * @param text a string to print on card
+     */
     private void printMessage(String text){
 
         if(!text.equals("")){
+            //add new card to layout for us to view later
             mainAdapter.add(0, text);
+            //scroll to the top of our list
             layoutManager.scrollToPosition(0);
         }
     }
 
-    public String[] left(String input, String pointer, int index)
+    /**
+     * moveLeft - Method to move pointer carrot one space to the left. If necessary,
+     *          adds an underscore character to the left of the input string, and a space
+     *          to the left of the pointer string.
+     *
+     * @param input String currently on the TM tape.
+     * @param pointer Pointer string with TM execution head.
+     * @param pointerPosition Numerical location of TM execution head.
+     * @return Array of three strings: input string, pointer string, pointerPosition (in spaces).
+     */
+    public String[] moveLeft(String input, String pointer, int pointerPosition)
     {
-        //System.out.println("Moved left from character " + input.charAt(index) + '.');
-        //printMessage("Moved left from character " + input.charAt(index) + '.');
-
         // Move index one left
-        index -= 1;
+        pointerPosition -= 1;
 
         for (int i = 0; i < input.length(); i++)
         {
@@ -569,7 +559,7 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
                     pointer += ' ';
 
                     // Reset index to 0 so we don't get out of bounds exception
-                    index = 0;
+                    pointerPosition = 0;
 
                     break;
                 }
@@ -583,14 +573,11 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
             }
         }
 
-        // Output array (I really didn't want to make arraylists so the index is expressed as
-        // a number of spaces equal to the index.)
-        // DON'T JUDGE ME, I WAS TIRED. YOU WOULD HAVE DONE THE SAME.
         String[] output = new String[3];
         output[0] = input;
         output[1] = pointer;
         String outTemp = "";
-        for (int i = 0; i < index; i++)
+        for (int i = 0; i < pointerPosition; i++)
         {
             outTemp += ' ';
         }
@@ -600,22 +587,20 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
     }
 
     /**
-     * right - Method to move pointer carrot one space to the right. If necessary,
+     * moveRight - Method to move pointer carrot one space to the right. If necessary,
      *          adds an underscore character to the right of the input string, and a space
      *          to the left of the pointer string.
      *
      * @param input String currently on the TM tape.
      * @param pointer Pointer string with TM execution head.
-     * @param index Numerical location of TM execution head.
-     * @return Array of three strings: input string, pointer string, index (in spaces).
+     * @param pointerPosition Numerical location of TM execution head.
+     * @return Array of three strings: input string, pointer string, pointerPosition (in spaces).
      */
-    public String[] right(String input, String pointer, int index)
+    public String[] moveRight(String input, String pointer, int pointerPosition)
     {
-        //System.out.println("Moved right from character " + input.charAt(index) + '.');
-        //printMessage("Moved right from character " + input.charAt(index) + '.');
 
         // Move index one right
-        index += 1;
+        pointerPosition += 1;
 
         // Find the pointer carrot in the pointer string and move it right
         for (int i = 0; i < input.length(); i++)
@@ -637,25 +622,16 @@ public class MainActivity extends AppCompatActivity implements MainAdapter.OnIte
             }
         }
 
-        // Yeah, yeah, poorly coded, I know.
         String[] output = new String[3];
         output[0] = input;
         output[1] = pointer;
         String outTemp = "";
-        for (int i = 0; i < index; i++)
+        for (int i = 0; i < pointerPosition; i++)
         {
             outTemp += ' ';
         }
         output[2] = outTemp;
 
         return output;
-    }
-
-    @Override
-    public void onItemClick(MainAdapter.ItemHolder item, int position) {
-        Toast.makeText(this,
-                "Remove " + position + " : " + item.getItemName(),
-                Toast.LENGTH_SHORT).show();
-        mainAdapter.remove(position);
     }
 }

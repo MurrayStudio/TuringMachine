@@ -1,3 +1,9 @@
+/**
+ * Author: Shamus Murray
+ *
+ * This class handles displaying all the information for the recycleview list
+ */
+
 package com.murraystudio.turingmachine;
 
 import android.support.v7.widget.RecyclerView;
@@ -12,18 +18,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ItemHolder> {
-    private List<String> itemsName;
-    private List<String> itemsName2;
-    private List<Boolean> isVisible;
-    private OnItemClickListener onItemClickListener;
-    private LayoutInflater layoutInflater;
+        private List<String> itemsName;
+        private List<String> itemsName2;
+        private OnItemClickListener onItemClickListener;
+        private LayoutInflater layoutInflater;
 
-    public MainAdapter(Context context){
-        layoutInflater = LayoutInflater.from(context);
-        itemsName = new ArrayList<String>();
-        itemsName2 = new ArrayList<String>();
-        isVisible = new ArrayList<Boolean>();
-    }
+        public MainAdapter(Context context){
+            layoutInflater = LayoutInflater.from(context);
+            itemsName = new ArrayList<String>();
+            itemsName2 = new ArrayList<String>();
+        }
 
     @Override
     public MainAdapter.ItemHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -35,13 +39,6 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ItemHolder> {
     public void onBindViewHolder(MainAdapter.ItemHolder holder, int position) {
         Log.i("itemName2 length: ", Integer.toString(itemsName2.size()));
         holder.setItemName(itemsName2.get(position));
-
-        /*if(isVisible.get(position) == true){
-            holder.itemView.setVisibility(View.VISIBLE);
-        }
-        else{
-            holder.itemView.setVisibility(View.GONE);
-        }*/
 
     }
 
@@ -63,22 +60,11 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ItemHolder> {
     }
 
     public interface OnItemClickListener{
-        public void onItemClick(ItemHolder item, int position);
+        void onItemClick(ItemHolder item, int position);
     }
 
     public void add(int location, String iName){
         itemsName.add(location, iName);
-        //isVisible.add(location, false); //default is all new cards are not visible
-        //notifyItemInserted(location);
-
-    }
-
-    public void remove(int location){
-        if(location >= itemsName.size())
-            return;
-
-        itemsName.remove(location);
-        notifyItemRemoved(location);
     }
 
     public void makeVisible(int location){
@@ -100,10 +86,6 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.ItemHolder> {
 
         public void setItemName(CharSequence name){
             textItemName.setText(name);
-        }
-
-        public CharSequence getItemName(){
-            return textItemName.getText();
         }
 
         @Override
